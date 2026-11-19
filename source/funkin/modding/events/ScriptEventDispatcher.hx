@@ -311,6 +311,9 @@ class ScriptEventDispatcher
         case SONG_SELECTED:
           t.onSongSelected(cast event);
           return;
+        case SONG_LIST:
+          t.onBuildSongList(cast event);
+          return;
         case FREEPLAY_INTRO:
           t.onFreeplayIntroDone(cast event);
           return;
@@ -339,6 +342,7 @@ class ScriptEventDispatcher
         ScriptEventType.CAPSULE_SELECTED,
         ScriptEventType.DIFFICULTY_SWITCH,
         ScriptEventType.SONG_SELECTED,
+        ScriptEventType.SONG_LIST,
         ScriptEventType.FREEPLAY_INTRO,
         ScriptEventType.FREEPLAY_OUTRO,
         ScriptEventType.FREEPLAY_CLOSE,

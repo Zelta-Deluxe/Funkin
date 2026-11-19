@@ -295,6 +295,14 @@ enum abstract ScriptEventType(String) from String to String
   public var SONG_SELECTED = 'SONG_SELECTED';
 
   /**
+   * Called when Freeplay is about to build the song list and create their capsules.
+   * This allows modders to add their own capsules that are not tied to songs.
+   *
+   * This event is not cancelable.
+   */
+  public var SONG_LIST = 'SONG_LIST';
+
+  /**
    * Called when the intro for Freeplay finishes.
    *
    * This event is not cancelable.

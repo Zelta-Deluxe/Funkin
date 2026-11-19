@@ -463,6 +463,13 @@ class BackingCard extends FlxSpriteGroup implements IBPMSyncedScriptedClass impl
   }
 
   /**
+   * Called when Freeplay builds the list of songs.
+   */
+  public function onBuildSongList(event:SongListScriptEvent):Void
+  {
+  }
+
+  /**
    * Called when the intro for Freeplay finishes.
    */
   public function onFreeplayIntroDone(event:FreeplayScriptEvent):Void

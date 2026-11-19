@@ -2,6 +2,7 @@ package funkin.ui.freeplay;
 
 import funkin.ui.FullScreenScaleMode;
 import funkin.ui.freeplay.FreeplayState.FreeplaySongData;
+import funkin.ui.freeplay.FreeplayState.FreeplayListEntry;
 import funkin.data.story.level.LevelRegistry;
 import funkin.graphics.shaders.HSVShader;
 import funkin.graphics.shaders.GaussianBlurShader;
@@ -41,13 +42,11 @@ class SongMenuItem extends FlxSpriteGroup
    * Modify this by calling `init()`
    * If `null`, assume this SongMenuItem is for the "Random Song" option.
    */
-  public var freeplayData(default, null):Null<FreeplaySongData> = null;
+  public var freeplayData(default, null):FreeplayListEntry = null;
 
   public var selected(default, set):Bool;
   public var forceHighlight(default, set):Bool;
-
-  var songText:CapsuleText;
-
+  public var songText:CapsuleText;
   public var favIconBlurred:FlxSprite;
   public var favIcon:FlxSprite;
   public var ranking:FreeplayRank;
@@ -58,7 +57,13 @@ class SongMenuItem extends FlxSpriteGroup
   public var doLerp:Bool = false;
   public var doJumpIn:Bool = false;
   public var doJumpOut:Bool = false;
-  public var onConfirm:Void->Void;
+
+  /**
+   * Modders should change this one onDifficultySwitch(), since the callbacks need the capsule to be created already.
+   * It is easier to do so now though because ID's don't require arbitrary methods to find a specific capsule.
+   */
+  public var onConfirm:SongMenuItem->Void;
+
   public var grayscaleShader:Grayscale;
   public var hsvShader(default, set):HSVShader;
   // var diffRatingSprite:FlxSprite;
@@ -278,7 +283,7 @@ class SongMenuItem extends FlxSpriteGroup
   {
     weekText.offset.set(0, 0);
 
-    if (this.freeplayData?.levelId == null)
+    if (this.freeplayData.songData?.levelId == null)
     {
       // Make the text invisible for random levels.
       weekText.visible = false;
@@ -287,7 +292,7 @@ class SongMenuItem extends FlxSpriteGroup
 
     weekText.visible = true;
 
-    var levelId:String = this.freeplayData.levelId;
+    var levelId:String = this.freeplayData.songData.levelId;
     var levelIdData:Level = LevelRegistry.instance.fetchEntry(levelId);
     var levelIdClean:String = '';
 
@@ -482,28 +487,27 @@ class SongMenuItem extends FlxSpriteGroup
 
   public function refreshDisplay(updateRank:Bool = true):Void
   {
-    if (freeplayData == null)
+    songText.text = freeplayData.name ?? freeplayData.songData?.fullSongName ?? '';
+    if (freeplayData.songData != null)
     {
-      songText.text = 'Random';
+      if (freeplayData.songData.songCharacter != null) pixelIcon.setCharacter(freeplayData.songData.songCharacter);
+      if (pixelIcon.char != freeplayData.songData.songCharacter) pixelIcon.visible = false;
+      updateBPM(Std.int(freeplayData.songData.songStartingBpm) ?? 0);
+      updateDifficultyRating(freeplayData.songData.difficultyRating ?? 0);
+      if (updateRank) updateScoringRank(freeplayData.songData.scoringRank);
+      newText.visible = freeplayData.songData.isNew;
+      favIcon.visible = freeplayData.songData.isFav;
+      favIconBlurred.visible = freeplayData.songData.isFav;
+    }
+    else
+    {
       pixelIcon.visible = false;
       ranking.visible = false;
       favIcon.visible = false;
       favIconBlurred.visible = false;
       newText.visible = false;
     }
-    else
-    {
-      songText.text = freeplayData.fullSongName;
-      if (freeplayData.songCharacter != null) pixelIcon.setCharacter(freeplayData.songCharacter);
-      if (pixelIcon.char != freeplayData.songCharacter) pixelIcon.visible = false;
-      updateBPM(Std.int(freeplayData.songStartingBpm) ?? 0);
-      updateDifficultyRating(freeplayData.difficultyRating ?? 0);
-      if (updateRank) updateScoringRank(freeplayData.scoringRank);
-      newText.visible = freeplayData.isNew;
-      favIcon.visible = freeplayData.isFav;
-      favIconBlurred.visible = freeplayData.isFav;
-      checkClip();
-    }
+    checkClip();
     updateSelected();
   }
 
@@ -590,7 +594,7 @@ class SongMenuItem extends FlxSpriteGroup
     this.y = y;
   }
 
-  public function initData(freeplayData:Null<FreeplaySongData>,
+  public function initData(freeplayData:FreeplayListEntry,
     ?styleData:FreeplayStyle = null,
     ?index:Int):Void
   {
@@ -606,26 +610,13 @@ class SongMenuItem extends FlxSpriteGroup
       songText.applyStyle(styleData);
     }
 
-    updateScoringRank(freeplayData?.scoringRank);
+    updateScoringRank(freeplayData.songData?.scoringRank);
     favIcon.animation.curAnim.curFrame = favIcon.animation.curAnim.numFrames - 1;
     favIconBlurred.animation.curAnim.curFrame = favIconBlurred.animation.curAnim.numFrames - 1;
 
     refreshDisplay();
 
     checkWeek();
-  }
-
-  public function initRandom(?styleData:FreeplayStyle):Void
-  {
-    initPosition(FlxG.width, 0);
-    initData(null, styleData, 1);
-    y = intendedY(0) + 10;
-    targetPos.x = x;
-    alpha = 0;
-    songText.visible = false;
-    favIcon.visible = false;
-    favIconBlurred.visible = false;
-    ranking.visible = false;
   }
 
   var frameInTicker:Float = 0;
@@ -737,7 +728,7 @@ class SongMenuItem extends FlxSpriteGroup
         final widescreenMult:Float = (FullScreenScaleMode.gameCutoutSize.x / 1.5) * 0.75;
         // Move the targetPos set to the if statement below if you want them to shift to their target positions after jumping in instead
         // I have no idea why this if instead of frameInTypeBeat == xFrames.length works even though they're the same thing
-        if (targetPos.x <= shiftx) targetPos.x = intendedX(index - curSelected) + widescreenMult;
+        if (targetPos.x <= shiftx) targetPos.x = intendedX((index + 1) - curSelected) + widescreenMult;
       }
       else if (frameInTypeBeat == xFrames.length)
       {

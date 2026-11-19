@@ -10,6 +10,7 @@ import funkin.play.cutscene.dialogue.Conversation;
 import funkin.play.Countdown.CountdownStep;
 import funkin.play.notes.NoteDirection;
 import funkin.ui.freeplay.SongMenuItem;
+import funkin.ui.freeplay.FreeplayState.FreeplayListEntry;
 import funkin.play.scoring.Scoring.ScoringRank;
 import openfl.events.KeyboardEvent;
 
@@ -682,8 +683,44 @@ class CapsuleScriptEvent extends ScriptEvent
 
   override public function toString():String
   {
-    var songName = this.capsule.freeplayData?.fullSongName ?? 'Random';
+    var songName = this.capsule.freeplayData.name ?? this.capsule.freeplayData.songData?.fullSongName ?? '';
     return 'CapsuleScriptEvent(type=$type, capsule=$songName)';
+  }
+}
+
+/**
+ * An event that is fired when Freeplay is building the list of capsules it is going to create.
+ */
+class SongListScriptEvent extends ScriptEvent
+{
+  /**
+   * The list of capsules that will be created.
+   */
+  public var items:Array<FreeplayListEntry>;
+
+  /**
+   * The difficulty we're at.
+   */
+  public var difficultyId(default, null):String;
+
+  /**
+   * The variation we're at.
+   */
+  public var variationId(default, null):String;
+
+  public function new(items:Array<FreeplayListEntry>,
+    difficultyId:String,
+    variationId:String):Void
+  {
+    super(SONG_LIST, false);
+    this.items = items;
+    this.difficultyId = difficultyId;
+    this.variationId = variationId;
+  }
+
+  override public function toString():String
+  {
+    return 'SongListScriptEvent(' + items.length + ' items)';
   }
 }
 
